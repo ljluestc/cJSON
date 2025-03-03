@@ -3101,7 +3101,6 @@ CJSON_PUBLIC(cJSON_bool) cJSON_Compare(const cJSON * const a, const cJSON * cons
                 b_element = b_element->next;
             }
 
-            /* one of the arrays is longer than the other */
             if (a_element != b_element) {
                 return false;
             }
@@ -3111,37 +3110,45 @@ CJSON_PUBLIC(cJSON_bool) cJSON_Compare(const cJSON * const a, const cJSON * cons
 
         case cJSON_Object:
         {
-            cJSON *a_element = NULL;
-            cJSON *b_element = NULL;
-            cJSON_ArrayForEach(a_element, a)
-            {
-                /* TODO This has O(n^2) runtime, which is horrible! */
-                b_element = get_object_item(b, a_element->string, case_sensitive);
-                if (b_element == NULL)
-                {
-                    return false;
-                }
+            cJSON *a_element = a->child;
+            cJSON *b_element = b->child;
 
-                if (!cJSON_Compare(a_element, b_element, case_sensitive))
-                {
-                    return false;
-                }
+            size_t a_count = 0;
+            size_t b_count = 0;
+
+            while (a_element != NULL)
+            {
+                a_count++;
+                a_element = a_element->next;
             }
 
-            /* doing this twice, once on a and b to prevent true comparison if a subset of b
-             * TODO: Do this the proper way, this is just a fix for now */
-            cJSON_ArrayForEach(b_element, b)
+            while (b_element != NULL)
             {
-                a_element = get_object_item(a, b_element->string, case_sensitive);
-                if (a_element == NULL)
+                b_count++;
+                b_element = b_element->next;
+            }
+
+            if (a_count != b_count)
+            {
+                return false;
+            }
+
+            a_element = a->child;
+            b_element = b->child;
+
+            while (a_element != NULL)
+            {
+                cJSON *b_member = get_object_item(b, a_element->string, case_sensitive);
+                if (b_member == NULL)
                 {
                     return false;
                 }
 
-                if (!cJSON_Compare(b_element, a_element, case_sensitive))
+                if (!cJSON_Compare(a_element, b_member, case_sensitive))
                 {
                     return false;
                 }
+                a_element = a_element->next;
             }
 
             return true;
